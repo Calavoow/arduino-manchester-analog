@@ -111,6 +111,7 @@ class Manchester
     void workAround1MhzTinyCore(uint8_t a = 1); //apply workaround for defect in tiny Core library for 1Mhz
     void setupTransmit(uint8_t pin, uint8_t SF = MAN_1200); //set up transmission
     void setupReceive(uint8_t pin, uint8_t SF = MAN_1200); //set up receiver
+	void setupReceiveAnalog(uint8_t pin, uint8_t SF, int16_t threshold); //Set up analog receiver
     void setup(uint8_t Tpin, uint8_t Rpin, uint8_t SF = MAN_1200); //set up receiver
     
     void transmit(uint16_t data); //transmit 16 bits of data

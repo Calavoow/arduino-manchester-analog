@@ -42,6 +42,8 @@ static uint8_t rx_maxBytes = 2;
 static uint8_t rx_default_data[2];
 static uint8_t* rx_data = rx_default_data;
 
+static int16_t rx_threshold = 1;
+
 Manchester::Manchester() //constructor
 {
   applyWorkAround1Mhz = 0;
@@ -101,6 +103,15 @@ void Manchester::setupTransmit(uint8_t pin, uint8_t SF)
 void Manchester::setupReceive(uint8_t pin, uint8_t SF)
 {
   setRxPin(pin);
+  ::MANRX_SetupReceive(SF);
+}
+
+void Manchester::setupReceiveAnalog(uint8_t pin, uint8_t SF, int16_t threshold)
+{
+  ::RxPin = pin; // user sets the digital pin as output
+  ::rx_threshold = threshold;
+  pinMode(::RxPin, INPUT_PULLUP); 
+  //setRxPin(pin);
   ::MANRX_SetupReceive(SF);
 }
 
@@ -502,7 +513,11 @@ void AddManBit(uint16_t *manBits, uint8_t *numMB,
     rx_count += 8;
     
     // Check for value change
-    rx_sample = digitalRead(RxPin);
+    if(rx_threshold != -1){
+    	rx_sample = digitalRead(RxPin);
+    } else { // We are using an anolog pin.
+    	rx_sample = analogRead(RxPin) <= rx_threshold;
+    }
     uint8_t transition = (rx_sample != rx_last_sample);
   
     if (rx_mode == RX_MODE_PRE)
