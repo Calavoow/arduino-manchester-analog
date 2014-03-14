@@ -116,6 +116,13 @@ class Manchester
     
     void transmit(uint16_t data); //transmit 16 bits of data
     void transmitArray(uint8_t numBytes, uint8_t *data); // transmit array of bytes
+
+	/**
+	* An iterative non-blocking version of the transmitArray function.
+	*
+	* Call this function 2*(16 + 8*numBytes) times, increasing iteration every time.
+	**/
+	void transmitArrayNonBlocking(uint8_t numBytes, uint8_t *data, int iteration);
     
     uint8_t decodeMessage(uint16_t m, uint8_t &id, uint8_t &data); //decode 8 bit payload and 4 bit ID from the message, return 1 of checksum is correct, otherwise 0
     uint16_t encodeMessage(uint8_t id, uint8_t data); //encode 8 bit payload, 4 bit ID and 4 bit checksum into 16 bit

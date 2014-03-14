@@ -42,7 +42,7 @@ static uint8_t rx_maxBytes = 2;
 static uint8_t rx_default_data[2];
 static uint8_t* rx_data = rx_default_data;
 
-static int16_t rx_threshold = 1;
+static int16_t rx_threshold = -1;
 
 Manchester::Manchester() //constructor
 {
@@ -173,6 +173,70 @@ void Manchester::transmitArray(uint8_t numBytes, uint8_t *data)
   // Send 2 terminatings 0's to correctly terminate the previous bit and to turn the transmitter off
   sendZero(); 
   sendZero();
+}//end of send the data
+
+/**
+ * An iterative non-blocking version of the transmitArray function.
+ *
+ * Call this function 2*(16 + 8*numBytes) times.
+ **/
+static unsigned long prevCall = 2^32-1; //Set to max value.
+static boolean prevBit = false;
+void Manchester::transmitArrayNonBlocking(uint8_t numBytes, uint8_t *data, int iteration)
+{
+	// Has enough time passed between calls?
+	// If prevCall is unitialized, enough time has passed.
+	// If iteration is even, we need at least delay1. If uneven: delay2.
+	if((prevCall == 2^32-1)||
+			((iteration+1) % 2 && millis() - prevCall >= delay1) ||
+			(iteration % 2 && millis() - prevCall >= delay2)) {
+
+		// We are currently sending a bit, send the other half.
+		if((iteration + 1) % 2) {
+			if(prevBit) { // Was high
+				digitalWrite(TxPin, LOW);
+			} else {
+				digitalWrite(TxPin, HIGH);
+			}
+			prevBit = !prevBit;
+			prevCall = millis();
+			return;
+		}
+
+		// Per-2 we send a bit. So divide by 2 for the current phase of transmission.
+		int phase = iteration >> 1;
+
+		if(phase<14) { // First send 14 zeros
+			digitalWrite(TxPin, HIGH);
+			prevBit = true;
+		} else if(phase==14) { // Then initiate with 1 one.
+			digitalWrite(TxPin, LOW);
+			prevBit = false;
+		} else if( phase < 15+(numBytes << 3) ) { // Now send one bit per phase. (numBytes * 8)
+			int bit = phase - 14; // There have been 14 phases before this.
+			
+			int dataIndex = bit >> 3; // Select which byte to send (bit / 8).
+
+			// Mask to select the bit to send in the byte.
+			// First we take the 3 last bits.
+			// Then shift the mask left for what is in those bits.
+			uint16_t mask = 0x01 << (bit & 0x07); 
+
+			uint8_t d = data[dataIndex] ^ DECOUPLING_MASK;
+			if ((d & mask) == 0){ // Send zero
+				digitalWrite(TxPin, HIGH);
+				prevBit = true;
+			} else { // Send one
+				digitalWrite(TxPin, LOW);
+				prevBit = false;
+			}
+    	} else if( phase < 17+(numBytes << 3) ){ // Send two zeros
+    		digitalWrite(TxPin, HIGH);
+    		prevBit = true;
+    	}
+
+    	prevCall = millis();
+    }
 }//end of send the data
 
 
@@ -513,10 +577,10 @@ void AddManBit(uint16_t *manBits, uint8_t *numMB,
     rx_count += 8;
     
     // Check for value change
-    if(rx_threshold != -1){
-    	rx_sample = digitalRead(RxPin);
-    } else { // We are using an anolog pin.
-    	rx_sample = analogRead(RxPin) <= rx_threshold;
+    if(rx_threshold == -1){
+		rx_sample = digitalRead(RxPin);
+    } else { // We are using an analog pin.
+		rx_sample = analogRead(RxPin) <= rx_threshold;
     }
     uint8_t transition = (rx_sample != rx_last_sample);
   

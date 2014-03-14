@@ -4,6 +4,7 @@ setTxPin	KEYWORD2
 setRxPin	KEYWORD2
 setupTransmit	KEYWORD2
 setupReceive	KEYWORD2
+setupReceiveAnalog	KEYWORD2
 setup	KEYWORD2
 transmit	KEYWORD2
 transmitBytes	KEYWORD2
