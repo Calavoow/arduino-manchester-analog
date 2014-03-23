@@ -25,6 +25,7 @@ The data rate is then 600 bits/s.
 */
 
 #include "Manchester.h"
+#include <limits.h>
 
 static int8_t RxPin = 255;
 
@@ -180,27 +181,26 @@ void Manchester::transmitArray(uint8_t numBytes, uint8_t *data)
  *
  * Call this function 2*(16 + 8*numBytes) times.
  **/
-static unsigned long prevCall = 2^32-1; //Set to max value.
+static unsigned long prevCall = 0;
 static boolean prevBit = false;
-void Manchester::transmitArrayNonBlocking(uint8_t numBytes, uint8_t *data, int iteration)
+int Manchester::transmitArrayNonBlocking(uint8_t numBytes, uint8_t *data, int iteration)
 {
+	unsigned long micr = micros();
 	// Has enough time passed between calls?
 	// If prevCall is unitialized, enough time has passed.
 	// If iteration is even, we need at least delay1. If uneven: delay2.
-	if((prevCall == 2^32-1)||
-			((iteration+1) % 2 && millis() - prevCall >= delay1) ||
-			(iteration % 2 && millis() - prevCall >= delay2)) {
+	if(((iteration+1) % 2 && micr - prevCall >= delay1) ||
+		(iteration % 2 && micr - prevCall >= delay2)) {
 
-		// We are currently sending a bit, send the other half.
-		if((iteration + 1) % 2) {
+		// We are currently sending a bit, send the other half. (uneven iterations)
+		if(iteration % 2) {
 			if(prevBit) { // Was high
 				digitalWrite(TxPin, LOW);
 			} else {
 				digitalWrite(TxPin, HIGH);
 			}
-			prevBit = !prevBit;
-			prevCall = millis();
-			return;
+			prevCall = micros(); // Take the time after transmission has finished.
+			return 1;
 		}
 
 		// Per-2 we send a bit. So divide by 2 for the current phase of transmission.
@@ -233,9 +233,13 @@ void Manchester::transmitArrayNonBlocking(uint8_t numBytes, uint8_t *data, int i
     	} else if( phase < 17+(numBytes << 3) ){ // Send two zeros
     		digitalWrite(TxPin, HIGH);
     		prevBit = true;
-    	}
+    	} // Else iteration is too high
 
-    	prevCall = millis();
+    	prevCall = micros();
+    	return 1;
+    } else {
+    	// Not enough data had passed, return false
+    	return 0;
     }
 }//end of send the data
 
