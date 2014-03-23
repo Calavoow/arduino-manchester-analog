@@ -185,12 +185,12 @@ static unsigned long prevCall = 0;
 static boolean prevBit = false;
 int Manchester::transmitArrayNonBlocking(uint8_t numBytes, uint8_t *data, int iteration)
 {
-	unsigned long micr = micros();
+	unsigned long currentMicros= micros();
 	// Has enough time passed between calls?
 	// If prevCall is unitialized, enough time has passed.
 	// If iteration is even, we need at least delay1. If uneven: delay2.
-	if(((iteration+1) % 2 && micr - prevCall >= delay1) ||
-		(iteration % 2 && micr - prevCall >= delay2)) {
+	if(((iteration+1) % 2 && currentMicros - prevCall > delay1) ||
+		(iteration % 2 && currentMicros - prevCall > delay2)) {
 
 		// We are currently sending a bit, send the other half. (uneven iterations)
 		if(iteration % 2) {
