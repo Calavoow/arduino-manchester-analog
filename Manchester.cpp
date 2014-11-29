@@ -108,10 +108,8 @@ void Manchester::setupReceive(uint8_t pin, uint8_t SF)
 
 void Manchester::setupReceiveAnalog(uint8_t pin, uint8_t SF, int16_t threshold)
 {
-  ::RxPin = pin; // user sets the digital pin as output
+  setRxPin(pin);
   ::rx_threshold = threshold;
-  pinMode(::RxPin, INPUT); 
-  //setRxPin(pin);
   ::MANRX_SetupReceive(SF);
 }
 
